@@ -281,15 +281,21 @@ async def stop(ctx):
 
 # ---------------- KICK LIVE ----------------
 
-@tasks.loop(seconds=60)
-
+@tasks.loop(seconds=180)
 async def check_kick():
 
     global is_live
 
     try:
 
-        r = requests.get(f"https://kick.com/api/v2/channels/{KICK_CHANNEL}")
+        headers = {
+            "User-Agent": "Mozilla/5.0"
+        }
+
+        r = requests.get(
+            f"https://kick.com/api/v2/channels/{KICK_CHANNEL}",
+            headers=headers
+        )
 
         data = r.json()
 
@@ -302,7 +308,9 @@ async def check_kick():
 
             is_live = True
 
-            await channel.send(f"@everyone Yayındayız!\n{KICK_URL}")
+            await channel.send(
+                f"@everyone Yayındayız!\n{KICK_URL}"
+            )
 
         if data["livestream"] == None:
 
