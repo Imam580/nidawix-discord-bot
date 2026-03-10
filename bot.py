@@ -136,8 +136,8 @@ class TicketSelect(discord.ui.Select):
         }
 
         channel = await guild.create_text_channel(
-            name=f"ticket-{user.id}",
-            overwrites=overwrites
+           name=f"ticket-{user.name}".lower(),
+           overwrites=overwrites
         )
 
         embed = discord.Embed(
