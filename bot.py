@@ -231,7 +231,15 @@ class CloseTicket(discord.ui.View):
 
 
 @bot.command()
+@commands.has_permissions(administrator=True)
 async def ticketpanel(ctx):
+
+    async for msg in ctx.channel.history(limit=30):
+        if msg.author == bot.user and msg.components:
+            try:
+                await msg.delete()
+            except:
+                pass
 
     embed = discord.Embed(
         title="🎫 Destek Sistemi",
