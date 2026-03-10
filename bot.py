@@ -168,12 +168,34 @@ class TicketPanel(discord.ui.View):
 class CloseTicket(discord.ui.View):
 
     def __init__(self):
-
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Ticket Kapat", style=discord.ButtonStyle.red)
+    # Kullanıcı kapatma
+    @discord.ui.button(label="Kullanıcı Kapat", style=discord.ButtonStyle.gray)
 
-    async def close(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def user_close(self, interaction: discord.Interaction, button: discord.ui.Button):
+
+        channel = interaction.channel
+        user = interaction.user
+
+        await channel.set_permissions(user, view_channel=False)
+
+        await interaction.response.send_message(
+            "Ticket senin için kapatıldı. Yetkililer inceleyebilir.",
+            ephemeral=True
+        )
+
+    # Yetkili kapatma
+    @discord.ui.button(label="Yetkili Kapat", style=discord.ButtonStyle.red)
+
+    async def staff_close(self, interaction: discord.Interaction, button: discord.ui.Button):
+
+        if not interaction.user.guild_permissions.administrator:
+            await interaction.response.send_message(
+                "Bunu sadece yetkililer yapabilir.",
+                ephemeral=True
+            )
+            return
 
         channel = interaction.channel
         user = interaction.user
@@ -181,7 +203,6 @@ class CloseTicket(discord.ui.View):
         messages = []
 
         async for msg in channel.history(limit=None):
-
             messages.append(f"{msg.author}: {msg.content}")
 
         messages.reverse()
@@ -202,9 +223,9 @@ class CloseTicket(discord.ui.View):
                 file=file
             )
 
-        await interaction.response.send_message("Ticket kapatılıyor...", ephemeral=True)
+        await interaction.response.defer()
 
-        await asyncio.sleep(3)
+        await asyncio.sleep(2)
 
         await channel.delete()
 
