@@ -40,14 +40,16 @@ async def on_member_join(member):
 @bot.event
 async def on_ready():
 
-    bot.add_view(TicketPanel())
-    bot.add_view(CloseTicket())
+    try:
+        bot.add_view(TicketPanel())
+        bot.add_view(CloseTicket())
+    except:
+        pass
 
     if not check_kick.is_running():
         check_kick.start()
 
     print(f"{bot.user} aktif!")
-
 
 # ---------------- KICK KOMUT ----------------
 
