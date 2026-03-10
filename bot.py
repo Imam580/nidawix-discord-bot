@@ -1,5 +1,6 @@
 import os
 import asyncio
+import io
 from datetime import timedelta
 
 import discord
@@ -172,63 +173,64 @@ class CloseTicket(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    # Kullanıcı kapatma
     @discord.ui.button(label="Kullanıcı Kapat", style=discord.ButtonStyle.gray)
-
     async def user_close(self, interaction: discord.Interaction, button: discord.ui.Button):
+
+        await interaction.response.defer(ephemeral=True)
 
         channel = interaction.channel
         user = interaction.user
 
         await channel.set_permissions(user, view_channel=False)
 
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "Ticket senin için kapatıldı. Yetkililer inceleyebilir.",
             ephemeral=True
         )
 
-    # Yetkili kapatma
     @discord.ui.button(label="Yetkili Kapat", style=discord.ButtonStyle.red)
-
     async def staff_close(self, interaction: discord.Interaction, button: discord.ui.Button):
 
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message(
-                "Bunu sadece yetkililer yapabilir.",
+                "Bunu sadece yöneticiler yapabilir.",
                 ephemeral=True
             )
             return
+
+        await interaction.response.defer(ephemeral=True)
 
         channel = interaction.channel
         user = interaction.user
 
         messages = []
 
-        async for msg in channel.history(limit=None):
-            messages.append(f"{msg.author}: {msg.content}")
+        try:
+            async for msg in channel.history(limit=None, oldest_first=True):
+                content = msg.content or ""
+                attachments = ", ".join(a.url for a in msg.attachments) if msg.attachments else ""
+                line = f"{msg.author}: {content}"
+                if attachments:
+                    line += f" [Ekler: {attachments}]"
+                messages.append(line)
 
-        messages.reverse()
+            transcript = "\n".join(messages) if messages else "Mesaj yok."
 
-        transcript = "\n".join(messages)
+            log_channel = bot.get_channel(LOG_CHANNEL_ID)
 
-        log_channel = bot.get_channel(LOG_CHANNEL_ID)
+            if log_channel:
+                file_buffer = io.BytesIO(transcript.encode("utf-8"))
+                discord_file = discord.File(file_buffer, filename=f"{channel.name}.txt")
 
-        if log_channel:
+                await log_channel.send(
+                    f"Ticket kapatıldı\nKanal: {channel.name}\nKapatan: {user}",
+                    file=discord_file
+                )
 
-            file = discord.File(
-                fp=bytes(transcript, "utf-8"),
-                filename=f"{channel.name}.txt"
-            )
-
-            await log_channel.send(
-                f"Ticket kapatıldı\nKanal: {channel.name}\nKapatan: {user}",
-                file=file
-            )
-
-        await interaction.response.defer()
+        except Exception as e:
+            print("Ticket kapatma/log hatası:", e)
 
         await asyncio.sleep(2)
-
         await channel.delete()
 
 
