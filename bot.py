@@ -116,16 +116,14 @@ class TicketSelect(discord.ui.Select):
         user = interaction.user
         reason = self.values[0]
 
-        existing = discord.utils.get(guild.text_channels, name=f"ticket-{user.id}")
-
-        if existing:
-
-            await interaction.response.send_message(
-                f"Zaten açık ticketın var: {existing.mention}",
-                ephemeral=True
-            )
-
-            return
+        # Kullanıcı zaten ticket açmış mı
+        for channel in guild.text_channels:
+            if str(user.id) in channel.topic if channel.topic else False:
+                await interaction.response.send_message(
+                    "Zaten açık ticketın var.",
+                    ephemeral=True
+                )
+                return
 
         overwrites = {
 
@@ -135,9 +133,14 @@ class TicketSelect(discord.ui.Select):
 
         }
 
+        # Ticket kanal adı
+        safe_reason = reason.lower().replace(" ", "-")
+        safe_name = user.name.lower()
+
         channel = await guild.create_text_channel(
-           name=f"ticket-{user.name}".lower(),
-           overwrites=overwrites
+            name=f"{safe_reason}-{safe_name}",
+            overwrites=overwrites,
+            topic=str(user.id)
         )
 
         embed = discord.Embed(
@@ -190,10 +193,7 @@ class CloseTicket(discord.ui.View):
         if log_channel:
 
             file = discord.File(
-                fp=discord.File(
-                    fp=bytes(transcript, "utf-8"),
-                    filename=f"{channel.name}.txt"
-                ).fp,
+                fp=bytes(transcript, "utf-8"),
                 filename=f"{channel.name}.txt"
             )
 
