@@ -1,5 +1,4 @@
 discord.py
-python-dotenv
 yt-dlp
 PyNaCl
-aiohttp
+requests
