@@ -9,19 +9,20 @@ import requests
 
 TOKEN = os.getenv("TOKEN")
 
-PREFIX = "!"
-
-AUTOROLE_ID = int(os.getenv("AUTOROLE_ID", "1143085017006866477"))
+AUTOROLE_ID = int(os.getenv("AUTOROLE_ID", "0"))
 KICK_CHANNEL = os.getenv("KICK_CHANNEL", "nidawix")
 KICK_NOTIFY_CHANNEL_ID = int(os.getenv("KICK_NOTIFY_CHANNEL_ID", "0"))
+LOG_CHANNEL_ID = int(os.getenv("TICKET_LOG_CHANNEL_ID", "0"))
 
-KICK_URL = f"https://kick.com/{KICK_CHANNEL}"
+PREFIX = "!"
 
 intents = discord.Intents.all()
-bot = commands.Bot(command_prefix=PREFIX, intents=intents, help_command=None)
+
+bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 
 is_live = False
 
+KICK_URL = f"https://kick.com/{KICK_CHANNEL}"
 
 # ---------------- OTO ROL ----------------
 
@@ -34,10 +35,13 @@ async def on_member_join(member):
         await member.add_roles(role)
 
 
-# ---------------- BOT READY ----------------
+# ---------------- READY ----------------
 
 @bot.event
 async def on_ready():
+
+    bot.add_view(TicketPanel())
+    bot.add_view(CloseTicket())
 
     if not check_kick.is_running():
         check_kick.start()
@@ -45,7 +49,7 @@ async def on_ready():
     print(f"{bot.user} aktif!")
 
 
-# ---------------- KICK KOMUTU ----------------
+# ---------------- KICK KOMUT ----------------
 
 @bot.command()
 async def kick(ctx):
@@ -76,7 +80,6 @@ async def mute(ctx, member: discord.Member, minutes: int):
 
 
 @bot.command()
-@commands.has_permissions(moderate_members=True)
 async def unmute(ctx, member: discord.Member):
 
     await member.timeout(None)
@@ -85,48 +88,139 @@ async def unmute(ctx, member: discord.Member):
 
 
 @bot.command()
-@commands.has_permissions(manage_messages=True)
 async def sil(ctx, amount: int):
 
     await ctx.channel.purge(limit=amount + 1)
 
 
-# ---------------- TICKET ----------------
+# ---------------- TICKET SYSTEM ----------------
 
-class TicketView(discord.ui.View):
+class TicketSelect(discord.ui.Select):
 
-    @discord.ui.button(label="Ticket Aç", style=discord.ButtonStyle.green)
+    def __init__(self):
 
-    async def ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+        options = [
+
+            discord.SelectOption(label="Kick Ban İtiraz", emoji="🎮"),
+            discord.SelectOption(label="Ekibe Katılım", emoji="👥"),
+            discord.SelectOption(label="İş Birliği", emoji="🤝"),
+            discord.SelectOption(label="Diğer", emoji="❓")
+
+        ]
+
+        super().__init__(placeholder="Ticket türünü seç", options=options)
+
+    async def callback(self, interaction: discord.Interaction):
 
         guild = interaction.guild
         user = interaction.user
+        reason = self.values[0]
+
+        existing = discord.utils.get(guild.text_channels, name=f"ticket-{user.id}")
+
+        if existing:
+
+            await interaction.response.send_message(
+                f"Zaten açık ticketın var: {existing.mention}",
+                ephemeral=True
+            )
+
+            return
 
         overwrites = {
+
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             user: discord.PermissionOverwrite(view_channel=True),
             guild.me: discord.PermissionOverwrite(view_channel=True)
+
         }
 
         channel = await guild.create_text_channel(
-            name=f"ticket-{user.name}",
+            name=f"ticket-{user.id}",
             overwrites=overwrites
         )
 
-        await channel.send(f"{user.mention} destek talebi oluşturdu")
+        embed = discord.Embed(
+            title="🎫 Ticket Açıldı",
+            description=f"Konu: **{reason}**\nKullanıcı: {user.mention}"
+        )
+
+        await channel.send(embed=embed, view=CloseTicket())
 
         await interaction.response.send_message(
-            f"Ticket açıldı: {channel.mention}", ephemeral=True
+            f"Ticket oluşturuldu: {channel.mention}",
+            ephemeral=True
         )
+
+
+class TicketPanel(discord.ui.View):
+
+    def __init__(self):
+
+        super().__init__(timeout=None)
+
+        self.add_item(TicketSelect())
+
+
+class CloseTicket(discord.ui.View):
+
+    def __init__(self):
+
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="Ticket Kapat", style=discord.ButtonStyle.red)
+
+    async def close(self, interaction: discord.Interaction, button: discord.ui.Button):
+
+        channel = interaction.channel
+        user = interaction.user
+
+        messages = []
+
+        async for msg in channel.history(limit=None):
+
+            messages.append(f"{msg.author}: {msg.content}")
+
+        messages.reverse()
+
+        transcript = "\n".join(messages)
+
+        log_channel = bot.get_channel(LOG_CHANNEL_ID)
+
+        if log_channel:
+
+            file = discord.File(
+                fp=discord.File(
+                    fp=bytes(transcript, "utf-8"),
+                    filename=f"{channel.name}.txt"
+                ).fp,
+                filename=f"{channel.name}.txt"
+            )
+
+            await log_channel.send(
+                f"Ticket kapatıldı\nKanal: {channel.name}\nKapatan: {user}",
+                file=file
+            )
+
+        await interaction.response.send_message("Ticket kapatılıyor...", ephemeral=True)
+
+        await asyncio.sleep(3)
+
+        await channel.delete()
 
 
 @bot.command()
 async def ticketpanel(ctx):
 
-    await ctx.send("Destek almak için butona bas", view=TicketView())
+    embed = discord.Embed(
+        title="🎫 Destek Sistemi",
+        description="Aşağıdan ticket türünü seç"
+    )
+
+    await ctx.send(embed=embed, view=TicketPanel())
 
 
-# ---------------- MÜZİK ----------------
+# ---------------- MUSIC ----------------
 
 ytdl_format_options = {
     'format': 'bestaudio/best',
@@ -137,8 +231,6 @@ ffmpeg_options = {
     'options': '-vn'
 }
 
-ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
-
 
 @bot.command()
 async def join(ctx):
@@ -147,9 +239,7 @@ async def join(ctx):
         await ctx.send("Önce bir ses kanalına gir.")
         return
 
-    channel = ctx.author.voice.channel
-
-    await channel.connect()
+    await ctx.author.voice.channel.connect()
 
 
 @bot.command()
@@ -163,7 +253,7 @@ async def leave(ctx):
 async def play(ctx, url):
 
     if not ctx.author.voice:
-        await ctx.send("Önce bir ses kanalına gir.")
+        await ctx.send("Önce ses kanalına gir.")
         return
 
     voice = ctx.voice_client
@@ -172,7 +262,9 @@ async def play(ctx, url):
         voice = await ctx.author.voice.channel.connect()
 
     with yt_dlp.YoutubeDL(ytdl_format_options) as ydl:
+
         info = ydl.extract_info(url, download=False)
+
         URL = info['url']
 
     source = discord.FFmpegPCMAudio(URL, **ffmpeg_options)
@@ -187,9 +279,10 @@ async def stop(ctx):
         ctx.voice_client.stop()
 
 
-# ---------------- KICK YAYIN BİLDİRİM ----------------
+# ---------------- KICK LIVE ----------------
 
 @tasks.loop(seconds=60)
+
 async def check_kick():
 
     global is_live
@@ -209,9 +302,7 @@ async def check_kick():
 
             is_live = True
 
-            await channel.send(
-                f"@everyone Yayındayız!\n{KICK_URL}"
-            )
+            await channel.send(f"@everyone Yayındayız!\n{KICK_URL}")
 
         if data["livestream"] == None:
 
@@ -222,10 +313,9 @@ async def check_kick():
         print("Kick kontrol hatası:", e)
 
 
-# ---------------- TOKEN KONTROL ----------------
+# ---------------- TOKEN ----------------
 
 if not TOKEN:
     raise ValueError("TOKEN Railway Variables kısmında yok.")
-
 
 bot.run(TOKEN)
