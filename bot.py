@@ -286,20 +286,6 @@ async def on_ready():
 
     await ensure_ticket_panel()
 
-    try:
-        node = wavelink.Node(
-            identifier="main",
-            uri="http://lavalink.jirayu.net:13592",
-            password="jirayu"
-        )
-
-        await wavelink.Pool.connect(nodes=[node], client=bot)
-
-        print("✅ Lavalink bağlandı")
-
-    except Exception as e:
-        print("❌ Lavalink bağlantı hatası:", e)
-
     print(f"{bot.user} aktif!")
 # ---------------- KICK KOMUT ----------------
 
