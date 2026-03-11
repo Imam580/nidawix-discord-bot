@@ -24,6 +24,7 @@ bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 
 is_live = False
 KICK_URL = f"https://kick.com/{KICK_CHANNEL}"
+music_queue = []
 
 
 # ---------------- OTO ROL ----------------
@@ -342,6 +343,8 @@ async def ticketpanel(ctx):
 
 # ---------------- MUSIC ----------------
 
+music_queue = []
+
 ytdl_format_options = {
     "format": "bestaudio/best",
     "noplaylist": True,
@@ -365,6 +368,7 @@ ffmpeg_options = {
 
 @bot.command()
 async def join(ctx):
+
     if not ctx.author.voice:
         await ctx.send("Önce bir ses kanalına gir.")
         return
@@ -378,12 +382,14 @@ async def join(ctx):
 
 @bot.command()
 async def leave(ctx):
+
     if ctx.voice_client:
         await ctx.voice_client.disconnect()
+        music_queue.clear()
 
 
 @bot.command()
-async def play(ctx, query):
+async def play(ctx, *, query):
 
     if not ctx.author.voice:
         await ctx.send("Önce bir ses kanalına gir.")
@@ -397,22 +403,60 @@ async def play(ctx, query):
     def extract():
         with yt_dlp.YoutubeDL(ytdl_format_options) as ydl:
             info = ydl.extract_info(f"ytsearch:{query}", download=False)["entries"][0]
-            return info["url"]
+            return info["url"], info["title"]
 
-    stream_url = await asyncio.to_thread(extract)
+    url, title = await asyncio.to_thread(extract)
 
-    source = discord.FFmpegPCMAudio(stream_url, executable="ffmpeg")
+    music_queue.append(url)
 
-    voice.play(source)
+    await ctx.send(f"🎵 Queue'ya eklendi: **{title}**")
 
-    await ctx.send("🎵 Şarkı çalıyor!")
+    if not voice.is_playing():
+        await play_next(ctx)
+
+
+async def play_next(ctx):
+
+    if len(music_queue) > 0:
+
+        url = music_queue.pop(0)
+
+        voice = ctx.voice_client
+
+        source = discord.FFmpegPCMAudio(
+            url,
+            executable="ffmpeg",
+            **ffmpeg_options
+        )
+
+        voice.play(
+            source,
+            after=lambda e: asyncio.run_coroutine_threadsafe(
+                play_next(ctx),
+                bot.loop
+            )
+        )
+
+
+@bot.command()
+async def skip(ctx):
+
+    voice = ctx.voice_client
+
+    if voice and voice.is_playing():
+        voice.stop()
+        await ctx.send("⏭ Şarkı atlandı")
 
 
 @bot.command()
 async def stop(ctx):
-    if ctx.voice_client:
-        ctx.voice_client.stop()
 
+    voice = ctx.voice_client
+
+    if voice:
+        voice.stop()
+        music_queue.clear()
+        await ctx.send("⏹ Müzik durduruldu")
 
 # ---------------- KICK LIVE ----------------
 
