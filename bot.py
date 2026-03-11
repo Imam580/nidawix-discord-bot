@@ -344,7 +344,18 @@ async def ticketpanel(ctx):
 
 ytdl_format_options = {
     "format": "bestaudio/best",
-    "noplaylist": True
+    "noplaylist": True,
+    "quiet": True,
+    "nocheckcertificate": True,
+    "ignoreerrors": False,
+    "no_warnings": True,
+    "default_search": "ytsearch",
+    "source_address": "0.0.0.0",
+    "extractor_args": {
+        "youtube": {
+            "player_client": ["android"]
+        }
+    }
 }
 
 ffmpeg_options = {
