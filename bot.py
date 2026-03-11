@@ -383,9 +383,10 @@ async def leave(ctx):
 
 
 @bot.command()
-async def play(ctx, url: str):
+async def play(ctx, query):
+
     if not ctx.author.voice:
-        await ctx.send("Önce ses kanalına gir.")
+        await ctx.send("Önce bir ses kanalına gir.")
         return
 
     voice = ctx.voice_client
@@ -395,13 +396,16 @@ async def play(ctx, url: str):
 
     def extract():
         with yt_dlp.YoutubeDL(ytdl_format_options) as ydl:
-            return ydl.extract_info(url, download=False)
+            info = ydl.extract_info(f"ytsearch:{query}", download=False)["entries"][0]
+            return info["url"]
 
-    info = await asyncio.to_thread(extract)
-    stream_url = info["url"]
+    stream_url = await asyncio.to_thread(extract)
 
-    source = discord.FFmpegPCMAudio(stream_url, **ffmpeg_options)
+    source = discord.FFmpegPCMAudio(stream_url, executable="ffmpeg")
+
     voice.play(source)
+
+    await ctx.send("🎵 Şarkı çalıyor!")
 
 
 @bot.command()
