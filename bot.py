@@ -14,6 +14,7 @@ AUTOROLE_ID = int(os.getenv("AUTOROLE_ID", "0"))
 KICK_CHANNEL = os.getenv("KICK_CHANNEL", "nidawix")
 KICK_NOTIFY_CHANNEL_ID = int(os.getenv("KICK_NOTIFY_CHANNEL_ID", "0"))
 LOG_CHANNEL_ID = int(os.getenv("TICKET_LOG_CHANNEL_ID", "0"))
+TICKET_PANEL_CHANNEL_ID = int(os.getenv("TICKET_PANEL_CHANNEL_ID", "0"))
 
 PREFIX = "!"
 
@@ -38,17 +39,38 @@ async def on_member_join(member):
 
 # ---------------- READY ----------------
 
+async def ensure_ticket_panel():
+
+    channel = bot.get_channel(TICKET_PANEL_CHANNEL_ID)
+
+    if not channel:
+        print("Ticket panel kanalı bulunamadı")
+        return
+
+    async for msg in channel.history(limit=20):
+
+        if msg.author == bot.user and msg.components:
+            return
+
+    embed = discord.Embed(
+        title="🎫 Destek Sistemi",
+        description="Aşağıdan ticket türünü seç"
+    )
+
+    await channel.send(embed=embed, view=TicketPanel())
+
+    print("Ticket panel otomatik oluşturuldu")
+
 @bot.event
 async def on_ready():
 
-    try:
-        bot.add_view(TicketPanel())
-        bot.add_view(CloseTicket())
-    except:
-        pass
+    bot.add_view(TicketPanel())
+    bot.add_view(CloseTicket())
 
     if not check_kick.is_running():
         check_kick.start()
+
+    await ensure_ticket_panel()
 
     print(f"{bot.user} aktif!")
 
