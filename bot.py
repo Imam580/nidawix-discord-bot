@@ -275,6 +275,8 @@ async def ensure_ticket_panel():
     print("Ticket panel otomatik oluşturuldu")
 
 
+import wavelink
+
 @bot.event
 async def on_ready():
 
@@ -286,9 +288,8 @@ async def on_ready():
 
     await ensure_ticket_panel()
 
-    # Lavalink bağlantısı
     node = wavelink.Node(
-        uri="http://lavalink-4-production-1bc8.up.railway.app:2333",
+        uri="https://lavalink-4-production-1bc8.up.railway.app",
         password="youshallnotpass"
     )
 
