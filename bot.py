@@ -7,6 +7,7 @@ import discord
 from discord.ext import commands, tasks
 import yt_dlp
 import requests
+import wavelink
 
 TOKEN = os.getenv("TOKEN")
 
@@ -276,6 +277,7 @@ async def ensure_ticket_panel():
 
 @bot.event
 async def on_ready():
+
     bot.add_view(TicketPanel())
     bot.add_view(CloseTicket())
 
@@ -283,7 +285,16 @@ async def on_ready():
         check_kick.start()
 
     await ensure_ticket_panel()
-    print(f"{bot.user} aktif!")
+
+    # Lavalink bağlantısı
+    node = wavelink.Node(
+        uri="http://lavalink-4-production-1bc8.up.railway.app:2333",
+        password="youshallnotpass"
+    )
+
+    await wavelink.Pool.connect(nodes=[node], client=bot)
+
+    print(f"{bot.user} aktif ve Lavalink bağlı!")
 
 
 # ---------------- KICK KOMUT ----------------
@@ -343,130 +354,103 @@ async def ticketpanel(ctx):
 
 # ---------------- MUSIC ----------------
 
-music_queue = []
+import wavelink
 
-ytdl_format_options = {
-    "format": "bestaudio/best",
-    "noplaylist": True,
-    "quiet": True,
-    "nocheckcertificate": True,
-    "ignoreerrors": False,
-    "no_warnings": True,
-    "default_search": "ytsearch",
-    "source_address": "0.0.0.0",
-    "extractor_args": {
-        "youtube": {
-            "player_client": ["android", "web", "ios"]
-        }
-    }
-}
-
-ffmpeg_options = {
-    "options": "-vn"
-}
+music_queue = {}
 
 
 @bot.command()
-async def join(ctx):
+async def play(ctx, *, search: str):
 
     if not ctx.author.voice:
         await ctx.send("Önce bir ses kanalına gir.")
         return
 
-    if ctx.voice_client:
-        await ctx.send("Zaten bir ses kanalındayım.")
+    player: wavelink.Player = ctx.voice_client
+
+    if not player:
+        player = await ctx.author.voice.channel.connect(cls=wavelink.Player)
+
+    tracks = await wavelink.Playable.search(search)
+
+    if not tracks:
+        await ctx.send("Şarkı bulunamadı.")
         return
 
-    await ctx.author.voice.channel.connect()
+    track = tracks[0]
 
+    guild_id = ctx.guild.id
 
-@bot.command()
-async def leave(ctx):
+    if player.playing:
+        if guild_id not in music_queue:
+            music_queue[guild_id] = []
 
-    if ctx.voice_client:
-        await ctx.voice_client.disconnect()
-        music_queue.clear()
+        music_queue[guild_id].append(track)
 
-
-@bot.command()
-async def play(ctx, *, query):
-
-    if not ctx.author.voice:
-        await ctx.send("Önce bir ses kanalına gir.")
-        return
-
-    voice = ctx.voice_client
-
-    if not voice:
-        voice = await ctx.author.voice.channel.connect()
-
-    ydl_opts = {
-        "format": "bestaudio",
-        "default_search": "ytsearch",
-        "quiet": True
-    }
-
-    def extract():
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f"ytsearch:{query}", download=False)["entries"][0]
-            return info["url"], info["title"]
-
-    url, title = await asyncio.to_thread(extract)
-
-    source = discord.FFmpegPCMAudio(
-        url,
-        executable="ffmpeg",
-        before_options="-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
-        options="-vn"
-    )
-
-    voice.play(source)
-
-    await ctx.send(f"🎵 Çalıyor: **{title}**")
-
-
-async def play_next(ctx):
-
-    if len(music_queue) > 0:
-
-        url = music_queue.pop(0)
-
-        voice = ctx.voice_client
-
-        source = discord.FFmpegPCMAudio(
-            url,
-            executable="ffmpeg",
-            **ffmpeg_options
-        )
-
-        voice.play(
-            source,
-            after=lambda e: asyncio.run_coroutine_threadsafe(
-                play_next(ctx),
-                bot.loop
-            )
-        )
+        await ctx.send(f"📜 Kuyruğa eklendi: **{track.title}**")
+    else:
+        await player.play(track)
+        await ctx.send(f"🎵 Çalıyor: **{track.title}**")
 
 
 @bot.command()
 async def skip(ctx):
 
-    voice = ctx.voice_client
+    player: wavelink.Player = ctx.voice_client
 
-    if voice and voice.is_playing():
-        voice.stop()
-        await ctx.send("⏭ Şarkı atlandı")
+    if not player:
+        return
+
+    await player.stop()
+
+    await ctx.send("⏭ Şarkı atlandı")
 
 
 @bot.command()
 async def stop(ctx):
 
-    voice = ctx.voice_client
+    player: wavelink.Player = ctx.voice_client
 
-    if voice:
-        voice.stop()
-        music_queue.clear()
-        await ctx.send("⏹ Müzik durduruldu")
+    if not player:
+        return
+
+    guild_id = ctx.guild.id
+
+    if guild_id in music_queue:
+        music_queue[guild_id].clear()
+
+    await player.stop()
+
+    await ctx.send("⏹ Müzik durduruldu")
+
+
+@bot.command()
+async def leave(ctx):
+
+    player: wavelink.Player = ctx.voice_client
+
+    if player:
+        await player.disconnect()
+
+        guild_id = ctx.guild.id
+
+        if guild_id in music_queue:
+            music_queue[guild_id].clear()
+
+        await ctx.send("👋 Ses kanalından çıktım")
+
+
+@bot.event
+async def on_wavelink_track_end(payload):
+
+    player: wavelink.Player = payload.player
+    guild = player.guild
+
+    if guild.id in music_queue and music_queue[guild.id]:
+
+        next_track = music_queue[guild.id].pop(0)
+
+        await player.play(next_track)
 
 # ---------------- KICK LIVE ----------------
 
