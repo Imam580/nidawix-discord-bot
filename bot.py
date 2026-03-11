@@ -401,19 +401,14 @@ async def play(ctx, *, query):
         voice = await ctx.author.voice.channel.connect()
 
     ydl_opts = {
-        "format": "bestaudio/best",
-        "noplaylist": True,
+        "format": "bestaudio",
+        "default_search": "ytsearch",
         "quiet": True
     }
 
     def extract():
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-
-            if "youtube.com" in query or "youtu.be" in query:
-                info = ydl.extract_info(query, download=False)
-            else:
-                info = ydl.extract_info(f"ytsearch:{query}", download=False)["entries"][0]
-
+            info = ydl.extract_info(f"ytsearch:{query}", download=False)["entries"][0]
             return info["url"], info["title"]
 
     url, title = await asyncio.to_thread(extract)
