@@ -293,8 +293,8 @@ async def on_ready():
     try:
         node = wavelink.Node(
             identifier="main",
-            uri="http://lavalink-4-production-1bc8.up.railway.app",
-            password="youshallnotpass"
+            uri="http://lavalink.jirayu.net:13592",
+            password="jirayu"
         )
 
         await wavelink.Pool.connect(nodes=[node], client=bot)
@@ -305,7 +305,6 @@ async def on_ready():
         print("❌ Lavalink bağlantı hatası:", e)
 
     print(f"{bot.user} aktif!")
-
 # ---------------- KICK KOMUT ----------------
 
 @bot.command()
