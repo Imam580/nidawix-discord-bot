@@ -403,20 +403,23 @@ async def stop(ctx):
 
 @tasks.loop(seconds=180)
 async def check_kick():
+
     global is_live
 
     try:
+
         headers = {
-            "User-Agent": "Mozilla/5.0"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+            "Accept": "application/json",
+            "Referer": "https://kick.com/"
         }
 
         def fetch_data():
             r = requests.get(
-                f"https://kick.com/api/v2/channels/{KICK_CHANNEL}",
+                f"https://kick.com/api/v1/channels/{KICK_CHANNEL}",
                 headers=headers,
                 timeout=15
             )
-            r.raise_for_status()
             return r.json()
 
         data = await asyncio.to_thread(fetch_data)
@@ -430,13 +433,18 @@ async def check_kick():
         livestream = data.get("livestream")
 
         if livestream and not is_live:
+
             is_live = True
-            await channel.send(f"@everyone 🔴 **Yayındayız!**\n{KICK_URL}")
+
+            await channel.send(
+                f"@everyone 🔴 **Yayındayız!**\n{KICK_URL}"
+            )
 
         if not livestream:
             is_live = False
 
     except Exception as e:
+
         print("Kick kontrol hatası:", e)
 
 
