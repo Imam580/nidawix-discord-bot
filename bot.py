@@ -15,6 +15,7 @@ KICK_CHANNEL = os.getenv("KICK_CHANNEL", "nidawix")
 KICK_NOTIFY_CHANNEL_ID = int(os.getenv("KICK_NOTIFY_CHANNEL_ID", "0"))
 LOG_CHANNEL_ID = int(os.getenv("TICKET_LOG_CHANNEL_ID", "0"))
 TICKET_PANEL_CHANNEL_ID = int(os.getenv("TICKET_PANEL_CHANNEL_ID", "0"))
+TICKET_CATEGORY_ID = 1479805090390081646
 
 PREFIX = "!"
 
@@ -120,6 +121,29 @@ async def sil(ctx, amount: int):
 
 # ---------------- TICKET SYSTEM ----------------
 
+async def get_next_ticket_number(guild):
+
+    category = guild.get_channel(TICKET_CATEGORY_ID)
+
+    if not category:
+        return 1
+
+    tickets = [c for c in category.text_channels if c.name.startswith("ticket-")]
+
+    numbers = []
+
+    for channel in tickets:
+        try:
+            num = int(channel.name.split("-")[1])
+            numbers.append(num)
+        except:
+            pass
+
+    if not numbers:
+        return 1
+
+    return max(numbers) + 1
+
 class TicketSelect(discord.ui.Select):
 
     def __init__(self):
@@ -133,7 +157,11 @@ class TicketSelect(discord.ui.Select):
 
         ]
 
-        super().__init__(placeholder="Ticket türünü seç", options=options)
+        super().__init__(
+    placeholder="Ticket türünü seç",
+    options=options,
+    custom_id="ticket_select_menu"
+)
 
     async def callback(self, interaction: discord.Interaction):
 
@@ -162,11 +190,7 @@ class TicketSelect(discord.ui.Select):
         safe_reason = reason.lower().replace(" ", "-")
         safe_name = user.name.lower()
 
-        channel = await guild.create_text_channel(
-            name=f"{safe_reason}-{safe_name}",
-            overwrites=overwrites,
-            topic=str(user.id)
-        )
+        ticket_number = await get_next_ticket_number(guild)
 
         embed = discord.Embed(
             title="🎫 Ticket Açıldı",
@@ -195,7 +219,11 @@ class CloseTicket(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Kullanıcı Kapat", style=discord.ButtonStyle.gray)
+    @discord.ui.button(
+    label="Kullanıcı Kapat",
+    style=discord.ButtonStyle.gray,
+    custom_id="ticket_user_close"
+)
     async def user_close(self, interaction: discord.Interaction, button: discord.ui.Button):
 
         await interaction.response.defer(ephemeral=True)
@@ -210,7 +238,11 @@ class CloseTicket(discord.ui.View):
             ephemeral=True
         )
 
-    @discord.ui.button(label="Yetkili Kapat", style=discord.ButtonStyle.red)
+@discord.ui.button(
+    label="Yetkili Kapat",
+    style=discord.ButtonStyle.red,
+    custom_id="ticket_staff_close"
+)
     async def staff_close(self, interaction: discord.Interaction, button: discord.ui.Button):
 
         if not interaction.user.guild_permissions.administrator:
