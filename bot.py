@@ -149,20 +149,17 @@ class TicketSelect(discord.ui.Select):
     def __init__(self):
 
         options = [
-
             discord.SelectOption(label="Kick Ban İtiraz", emoji="🎮"),
             discord.SelectOption(label="Ekibe Katılım", emoji="👥"),
             discord.SelectOption(label="İş Birliği", emoji="🤝"),
             discord.SelectOption(label="Diğer", emoji="❓")
-
         ]
 
-       super().__init__(
-    placeholder="Ticket türünü seç",
-    options=options,
-    custom_id="ticket_select_menu"
-)
-
+        super().__init__(
+            placeholder="Ticket türünü seç",
+            options=options,
+            custom_id="ticket_select_menu"
+        )
     async def callback(self, interaction: discord.Interaction):
 
         guild = interaction.guild
