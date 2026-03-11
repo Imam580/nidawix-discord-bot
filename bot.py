@@ -277,6 +277,8 @@ async def ensure_ticket_panel():
 
 import wavelink
 
+import wavelink
+
 @bot.event
 async def on_ready():
 
@@ -288,15 +290,21 @@ async def on_ready():
 
     await ensure_ticket_panel()
 
-    node = wavelink.Node(
-        uri="https://lavalink-4-production-1bc8.up.railway.app",
-        password="youshallnotpass"
-    )
+    try:
+        node = wavelink.Node(
+            identifier="main",
+            uri="http://lavalink-4-production-1bc8.up.railway.app",
+            password="youshallnotpass"
+        )
 
-    await wavelink.Pool.connect(nodes=[node], client=bot)
+        await wavelink.Pool.connect(nodes=[node], client=bot)
 
-    print(f"{bot.user} aktif ve Lavalink bağlı!")
+        print("✅ Lavalink bağlandı")
 
+    except Exception as e:
+        print("❌ Lavalink bağlantı hatası:", e)
+
+    print(f"{bot.user} aktif!")
 
 # ---------------- KICK KOMUT ----------------
 
