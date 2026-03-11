@@ -400,19 +400,34 @@ async def play(ctx, *, query):
     if not voice:
         voice = await ctx.author.voice.channel.connect()
 
+    ydl_opts = {
+        "format": "bestaudio/best",
+        "noplaylist": True,
+        "quiet": True
+    }
+
     def extract():
-        with yt_dlp.YoutubeDL(ytdl_format_options) as ydl:
-            info = ydl.extract_info(f"ytsearch:{query}", download=False)["entries"][0]
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+
+            if "youtube.com" in query or "youtu.be" in query:
+                info = ydl.extract_info(query, download=False)
+            else:
+                info = ydl.extract_info(f"ytsearch:{query}", download=False)["entries"][0]
+
             return info["url"], info["title"]
 
     url, title = await asyncio.to_thread(extract)
 
-    music_queue.append(url)
+    source = discord.FFmpegPCMAudio(
+        url,
+        executable="ffmpeg",
+        before_options="-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
+        options="-vn"
+    )
 
-    await ctx.send(f"🎵 Queue'ya eklendi: **{title}**")
+    voice.play(source)
 
-    if not voice.is_playing():
-        await play_next(ctx)
+    await ctx.send(f"🎵 Çalıyor: **{title}**")
 
 
 async def play_next(ctx):
