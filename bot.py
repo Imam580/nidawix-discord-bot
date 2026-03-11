@@ -157,7 +157,7 @@ class TicketSelect(discord.ui.Select):
 
         ]
 
-        super().__init__(
+       super().__init__(
     placeholder="Ticket türünü seç",
     options=options,
     custom_id="ticket_select_menu"
@@ -219,11 +219,16 @@ class CloseTicket(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
+   class CloseTicket(discord.ui.View):
+
+    def __init__(self):
+        super().__init__(timeout=None)
+
     @discord.ui.button(
-    label="Kullanıcı Kapat",
-    style=discord.ButtonStyle.gray,
-    custom_id="ticket_user_close"
-)
+        label="Kullanıcı Kapat",
+        style=discord.ButtonStyle.gray,
+        custom_id="ticket_user_close"
+    )
     async def user_close(self, interaction: discord.Interaction, button: discord.ui.Button):
 
         await interaction.response.defer(ephemeral=True)
@@ -238,11 +243,24 @@ class CloseTicket(discord.ui.View):
             ephemeral=True
         )
 
-@discord.ui.button(
-    label="Yetkili Kapat",
-    style=discord.ButtonStyle.red,
-    custom_id="ticket_staff_close"
-)
+    @discord.ui.button(
+        label="Yetkili Kapat",
+        style=discord.ButtonStyle.red,
+        custom_id="ticket_staff_close"
+    )
+    async def staff_close(self, interaction: discord.Interaction, button: discord.ui.Button):
+
+        if not interaction.user.guild_permissions.administrator:
+            await interaction.response.send_message(
+                "Bunu sadece yöneticiler yapabilir.",
+                ephemeral=True
+            )
+            return
+
+        await interaction.response.defer(ephemeral=True)
+
+        channel = interaction.channel
+        user = interaction.user
     async def staff_close(self, interaction: discord.Interaction, button: discord.ui.Button):
 
         if not interaction.user.guild_permissions.administrator:
