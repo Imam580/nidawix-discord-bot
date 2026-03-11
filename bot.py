@@ -335,17 +335,20 @@ async def check_kick():
         channel = bot.get_channel(KICK_NOTIFY_CHANNEL_ID)
 
         if not channel:
+            print("Kick duyuru kanalı bulunamadı")
             return
 
-        if data["livestream"] != None and is_live == False:
+        livestream = data.get("livestream")
+
+        if livestream and not is_live:
 
             is_live = True
 
             await channel.send(
-                f"@everyone Yayındayız!\n{KICK_URL}"
+                f"@everyone 🔴 **Yayındayız!**\n{KICK_URL}"
             )
 
-        if data["livestream"] == None:
+        if not livestream:
 
             is_live = False
 
