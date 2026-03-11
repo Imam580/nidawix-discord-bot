@@ -7,7 +7,6 @@ import discord
 from discord.ext import commands, tasks
 import yt_dlp
 import requests
-import wavelink
 
 TOKEN = os.getenv("TOKEN")
 
@@ -275,9 +274,6 @@ async def ensure_ticket_panel():
     print("Ticket panel otomatik oluşturuldu")
 
 
-import wavelink
-
-import wavelink
 
 @bot.event
 async def on_ready():
