@@ -345,9 +345,14 @@ async def ticketpanel(ctx):
 # ---------------- MUSIC ----------------
 
 ytdl_opts = {
-    "format": "bestaudio",
+    "format": "bestaudio/best",
     "quiet": True,
-    "default_search": "ytsearch"
+    "default_search": "ytsearch",
+    "extractor_args": {
+        "youtube": {
+            "player_client": ["android"]
+        }
+    }
 }
 
 ffmpeg_opts = {
