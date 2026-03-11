@@ -1,5 +1,5 @@
 discord.py[voice]
-yt-dlp
+wavelink
 PyNaCl
 requests
-wavelink
+yt-dlp
