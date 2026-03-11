@@ -293,8 +293,8 @@ async def on_ready():
     try:
         node = wavelink.Node(
             identifier="main",
-            uri="http://lavalink.jirayu.net:13592",
-            password="jirayu"
+            uri="http://lava.link:80",
+            password="anything"
         )
 
         await wavelink.Pool.connect(nodes=[node], client=bot)
