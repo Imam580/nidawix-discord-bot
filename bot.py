@@ -1284,48 +1284,56 @@ async def leave(ctx):
 async def join(ctx):
 
     if not ctx.author.voice:
-        await ctx.send(
-            "🔊 Önce bir ses kanalına gir."
-        )
+        await ctx.send("🔊 Önce bir ses kanalına gir.")
         return
 
     try:
-
         voice_channel = ctx.author.voice.channel
 
+        # Bot zaten bir kanaldaysa
         if ctx.voice_client:
 
             if ctx.voice_client.channel == voice_channel:
-                await ctx.send(
-                    "🔊 Zaten bu ses kanalındayım."
-                )
+                await ctx.send("🔊 Zaten bu ses kanalındayım.")
                 return
 
-            await ctx.voice_client.move_to(
-                voice_channel
-            )
+            await ctx.voice_client.move_to(voice_channel)
 
             await ctx.send(
                 f"🔊 **{voice_channel.name}** kanalına geçtim."
             )
-
             return
 
+        # İlk bağlantı
         await voice_channel.connect()
 
         await ctx.send(
             f"🔊 **{voice_channel.name}** kanalına katıldım."
         )
 
-    except Exception as e:
+    except discord.Forbidden as e:
 
-        print(
-            "Join hatası:",
-            e
-        )
+        print("JOIN FORBIDDEN:", repr(e))
 
         await ctx.send(
-            "❌ Ses kanalına bağlanamadım."
+            "❌ Discord botun ses kanalına bağlanmasına izin vermedi."
+        )
+
+    except discord.ClientException as e:
+
+        print("JOIN CLIENT ERROR:", repr(e))
+
+        await ctx.send(
+            "❌ Bot zaten başka bir ses bağlantısında."
+        )
+
+    except Exception as e:
+
+        print("JOIN HATASI:", repr(e))
+
+        await ctx.send(
+            f"❌ Ses kanalına bağlanamadım.\n"
+            f"```{e}```"
         )
 
 
