@@ -1,4 +1,5 @@
-discord.py[voice]
-PyNaCl
-requests
+discord.py
+python-dotenv
 yt-dlp
+PyNaCl
+aiohttp
