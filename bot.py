@@ -441,6 +441,20 @@ class CloseTicketView(discord.ui.View):
                 e
             )
 
+@bot.command()
+async def instagram(ctx):
+    await ctx.send("📸 Instagram: https://www.instagram.com/yakuptv.034/")
+
+
+@bot.command()
+async def x(ctx):
+    await ctx.send("𝕏 X: https://x.com/Yakuptv34")
+
+
+@bot.command()
+async def youtube(ctx):
+    await ctx.send("▶️ YouTube: https://www.youtube.com/@YakupTV.1")
+
 
 # ============================================================
 # TICKET TÜRÜ SEÇME
