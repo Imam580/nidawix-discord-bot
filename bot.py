@@ -1280,6 +1280,54 @@ async def leave(ctx):
             "👋 Ses kanalından çıktım."
         )
 
+@bot.command()
+async def join(ctx):
+
+    if not ctx.author.voice:
+        await ctx.send(
+            "🔊 Önce bir ses kanalına gir."
+        )
+        return
+
+    try:
+
+        voice_channel = ctx.author.voice.channel
+
+        if ctx.voice_client:
+
+            if ctx.voice_client.channel == voice_channel:
+                await ctx.send(
+                    "🔊 Zaten bu ses kanalındayım."
+                )
+                return
+
+            await ctx.voice_client.move_to(
+                voice_channel
+            )
+
+            await ctx.send(
+                f"🔊 **{voice_channel.name}** kanalına geçtim."
+            )
+
+            return
+
+        await voice_channel.connect()
+
+        await ctx.send(
+            f"🔊 **{voice_channel.name}** kanalına katıldım."
+        )
+
+    except Exception as e:
+
+        print(
+            "Join hatası:",
+            e
+        )
+
+        await ctx.send(
+            "❌ Ses kanalına bağlanamadım."
+        )
+
 
 # ============================================================
 # KICK CANLI YAYIN KONTROLÜ
